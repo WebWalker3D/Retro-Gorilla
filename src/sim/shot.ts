@@ -45,7 +45,7 @@ export function inGorillaBox(g: GorillaState, x: number, y: number): boolean {
   return Math.abs(x - g.x) <= GORILLA_HALF_W && y >= g.y && y <= g.y + GORILLA_H;
 }
 
-function distToGorilla(g: GorillaState, x: number, y: number): number {
+export function distToGorilla(g: GorillaState, x: number, y: number): number {
   const dx = Math.max(g.x - GORILLA_HALF_W - x, 0, x - (g.x + GORILLA_HALF_W));
   const dy = Math.max(g.y - y, 0, y - (g.y + GORILLA_H));
   return Math.hypot(dx, dy);
@@ -84,6 +84,7 @@ export function simulateShot(world: World, shot: Shot): ShotResult {
   let maxDistance = 0;
   let cellsDestroyed = 0;
   let t = 0;
+  const sunR2 = w.sun.r * w.sun.r;
 
   const spawn = (weapon: WeaponId, x: number, y: number, vx: number, vy: number, bomblet: boolean): Proj => {
     const p: Proj = {
@@ -155,7 +156,7 @@ export function simulateShot(world: World, shot: Shot): ShotResult {
       return;
     }
 
-    const n = Math.max(1, Math.ceil((Math.hypot(p.vx, p.vy) * SIM_DT) / MAX_STEP));
+    const n = Math.max(1, Math.ceil((Math.sqrt(p.vx * p.vx + p.vy * p.vy) * SIM_DT) / MAX_STEP));
     const h = SIM_DT / n;
     for (let k = 0; k < n; k++) {
       const px = p.x;
@@ -169,7 +170,8 @@ export function simulateShot(world: World, shot: Shot): ShotResult {
         return;
       }
       if (!p.leftOwner && !inGorillaBox(owner, p.x, p.y)) p.leftOwner = true;
-      for (const gor of w.gorillas) {
+      for (let gi = 0; gi < 2; gi++) {
+        const gor = w.gorillas[gi];
         if (gor.ko || (gor === owner && !p.leftOwner)) continue;
         if (inGorillaBox(gor, p.x, p.y)) {
           explode(p, p.x, p.y, gor);
@@ -189,7 +191,9 @@ export function simulateShot(world: World, shot: Shot): ShotResult {
         explode(p, p.x, p.y, null);
         return;
       }
-      if (!p.sunSeen && Math.hypot(p.x - w.sun.x, p.y - w.sun.y) <= w.sun.r) {
+      const sx = p.x - w.sun.x;
+      const sy = p.y - w.sun.y;
+      if (!p.sunSeen && sx * sx + sy * sy <= sunR2) {
         p.sunSeen = true;
         events.push({ t, type: 'sun', id: p.id });
       }
@@ -203,10 +207,12 @@ export function simulateShot(world: World, shot: Shot): ShotResult {
   events.push({ t: 0, type: 'launch', id: 0 });
 
   while (t < MAX_SHOT_TIME - 1e-9) {
-    const alive = projs.filter((p) => p.alive);
-    if (!alive.length) break;
+    const count = projs.length; // bomblets spawned this step start moving next step
+    let any = false;
+    for (let i = 0; i < count; i++) if (projs[i].alive) any = true;
+    if (!any) break;
     t += SIM_DT;
-    for (const p of alive) if (p.alive) step(p);
+    for (let i = 0; i < count; i++) if (projs[i].alive) step(projs[i]);
   }
   for (const p of projs)
     if (p.alive) {
