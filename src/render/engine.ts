@@ -119,6 +119,8 @@ export class Engine {
   }
 
   start(): void {
+    // compile every material up front so the first seconds don't stutter
+    void this.renderer.compileAsync(this.scene, this.camera).catch(() => {});
     const tick = (now: number) => {
       requestAnimationFrame(tick);
       const raw = this.last ? (now - this.last) / 1000 : 1 / 60;

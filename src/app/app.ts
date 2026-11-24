@@ -93,7 +93,7 @@ export class App {
     }
   }
 
-  private applyPreset(p: Preset): void {
+  applyPreset(p: Preset): void {
     this.engine.setQuality(p);
     this.stage.applyShadowSize();
     this.stage.effects.setScale(this.engine.q.particleScale);
