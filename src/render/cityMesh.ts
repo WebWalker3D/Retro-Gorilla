@@ -93,7 +93,7 @@ const FRAG_COLOR = /* glsl */ `
  */
 export class CityMesh {
   readonly mesh: THREE.InstancedMesh;
-  readonly uniforms = { uLit: { value: 0.5 }, uTime: { value: 0 }, uWinBright: { value: 2.0 } };
+  readonly uniforms = { uLit: { value: 0.5 }, uTime: { value: 0 }, uWinBright: { value: 1.5 } };
   private aColor: THREE.InstancedBufferAttribute;
   private aInfo: THREE.InstancedBufferAttribute;
   private cellToInst = new Int32Array(0);

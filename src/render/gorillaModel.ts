@@ -123,7 +123,7 @@ export class GorillaModel {
         .replace('#include <common>', '#include <common>\nuniform vec3 uRim;')
         .replace(
           '#include <emissivemap_fragment>',
-          '#include <emissivemap_fragment>\nfloat rimF = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 2.5);\ntotalEmissiveRadiance += uRim * rimF;',
+          '#include <emissivemap_fragment>\nfloat rimF = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.5);\ntotalEmissiveRadiance += uRim * rimF;',
         );
     };
     this.mesh = new THREE.SkinnedMesh(geo, mat);

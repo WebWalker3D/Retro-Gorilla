@@ -173,6 +173,14 @@ export class Sky {
     this.group.add(this.glow, this.face);
   }
 
+  /** A scene holding just the sky dome, for baking a matching environment map. */
+  envScene(): THREE.Scene {
+    const sc = new THREE.Scene();
+    const m = new THREE.Mesh(this.dome.geometry, this.dome.material);
+    sc.add(m);
+    return sc;
+  }
+
   /** Place the sun on the play plane at the sim's sun collider (world coords), slightly behind it. */
   placeSun(x: number, y: number, r: number): void {
     this.baseScale = r * 2.3;

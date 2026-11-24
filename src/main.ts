@@ -16,57 +16,44 @@
  * The Initial Developer of the Original Code is Blaine Bouvier. All portions of the
  * code written by Blaine Bouvier are Copyright (c) 2026. All Rights Reserved.
  */
-import * as THREE from 'three';
 import { Engine } from './render/engine';
-import { Sky } from './render/sky';
-import { CityMesh } from './render/cityMesh';
-import { GORILLA_TINTS, lookFor, wx } from './render/palette';
-import { Backdrop } from './render/backdrop';
-import { RoofProps } from './render/roofProps';
-import { GorillaModel } from './render/gorillaModel';
-import { Weather } from './render/weather';
-import { generateCity } from './sim/city';
-import type { TimeOfDay, Weather as WK } from './sim/match';
+import { Stage } from './render/stage';
+import { applyShot, newMatch, startRound, type TimeOfDay, type Weather } from './sim/match';
+import { chooseShot, newAiMemory } from './sim/ai';
+import { Rng } from './sim/rng';
+import { simulateShot } from './sim/shot';
+import type { Player, Shot, WeaponId } from './sim/types';
 
 const q = new URLSearchParams(location.search);
 const engine = new Engine(document.getElementById('view') as HTMLCanvasElement, (q.get('q') as 'high') ?? 'high');
-const look = lookFor((q.get('tod') as TimeOfDay) ?? 'night', (q.get('wx') as WK) ?? 'clear');
-const sky = new Sky();
-sky.setLook(look);
-sky.placeSun(0, 68, 4);
-engine.scene.add(sky.group);
-const city = new CityMesh(120 * 80);
-const { city: c, gorillas } = generateCity(Number(q.get('seed') ?? 3));
-city.build(c);
-const back = new Backdrop(2); back.setLook(look); engine.scene.add(back.group);
-const props = new RoofProps(); props.build(c, 3, gorillas); engine.scene.add(props.group);
-const gs = gorillas.map((g, i) => { const m = new GorillaModel(GORILLA_TINTS[i]); m.setFacing(i === 0 ? 1 : -1); m.group.position.set(wx(g.x), g.y, 0); engine.scene.add(m.group); return m; });
-const anim = q.get('anim'); if (anim) gs[0].play(anim as 'idle');
-const weather = new Weather(2500); weather.set((q.get('wx') as WK) ?? 'clear', 6); engine.scene.add(weather.group);
-weather.onLightning = (v) => sky.flash(v);
-city.setLit(look.litFraction);
-engine.scene.add(city.mesh);
-const hemi = new THREE.HemisphereLight(look.hemiSky, look.hemiGround, look.hemiIntensity);
-const key = new THREE.DirectionalLight(look.key, look.keyIntensity);
-key.position.set(-50, 90, 80);
-key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
-Object.assign(key.shadow.camera, { left: -75, right: 75, top: 95, bottom: -5, near: 1, far: 300 });
-engine.scene.add(hemi, key);
-engine.scene.fog = new THREE.Fog(look.fog, look.fogNear, look.fogFar);
-const cz = Number(q.get('cz') ?? 150); const focus = q.get('focus');
-if (focus !== null) { const g = gorillas[Number(focus)]; engine.camera.position.set(wx(g.x) + 3, g.y + 3, 14); engine.camera.lookAt(wx(g.x), g.y + 1.8, 0); } else { engine.camera.position.set(0, 44, cz); engine.camera.lookAt(0, 34, 0); }
-engine.onFrame((dt, t) => {
-  sky.update(dt, t, engine.camera);
-  city.update(t);
-  back.update(t);
-  props.update(t, 6);
-  gs.forEach((g) => g.update(dt));
-  weather.update(dt, t);
-});
+const stage = new Stage(engine);
+const m = newMatch({ names: ['P1', 'P2'], cpu: [false, false], skill: [2, 2], target: 3, gravity: 9.8, seed: Number(q.get('seed') ?? 5) });
+if (q.get('tod')) m.cond.timeOfDay = q.get('tod') as TimeOfDay;
+if (q.get('wx')) m.cond.weather = q.get('wx') as Weather;
+stage.loadRound(m);
+engine.onFrame((dt, t) => stage.update(dt, t));
 engine.start();
 let frames = 0;
 engine.onFrame(() => {
   if (++frames === 30) (window as any).__ready = true;
 });
 (window as any).__info = () => engine.info();
+(window as any).__game = {
+  fire(angle: number, velocity: number, weapon: WeaponId = 'banana') {
+    const shot: Shot = { player: m.turn, angle, velocity, weapon };
+    const r = simulateShot(m.world, shot);
+    stage.playShot(shot, r).then(() => {
+      const o = applyShot(m, shot, r);
+      (window as any).__last = o;
+      if (o.kind !== 'continue') startRound(m), stage.loadRound(m);
+    });
+    return r.ko;
+  },
+  best(p: Player = m.turn) {
+    return chooseShot(m, p, new Rng(1), newAiMemory(), { noise: 0 });
+  },
+  aim(angle: number, power: number) {
+    stage.setAiming(m.turn, angle, power, null);
+  },
+  m,
+};

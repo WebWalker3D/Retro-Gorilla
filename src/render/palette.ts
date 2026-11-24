@@ -53,12 +53,12 @@ const BASE: Record<TimeOfDay, Look> = {
   night: {
     skyTop: c('#03050f'), skyBottom: c('#141a3c'), horizon: c('#3a2a63'), key: c('#9fb4ff'), keyIntensity: 1.7,
     hemiSky: c('#5666b8'), hemiGround: c('#1a1426'), hemiIntensity: 1.0, fog: c('#0d1030'), fogNear: 170, fogFar: 620,
-    litFraction: 0.36, stars: 1, moon: true, cloudColor: c('#2a2f55'), cloudCover: 0.35, streetLights: 1,
+    litFraction: 0.24, stars: 1, moon: true, cloudColor: c('#2a2f55'), cloudCover: 0.35, streetLights: 1,
   },
   dusk: {
     skyTop: c('#1b1446'), skyBottom: c('#ff7a50'), horizon: c('#ffc27a'), key: c('#ffae78'), keyIntensity: 2.2,
     hemiSky: c('#8a6cc0'), hemiGround: c('#2a1420'), hemiIntensity: 0.6, fog: c('#7a4a6a'), fogNear: 180, fogFar: 650,
-    litFraction: 0.26, stars: 0.35, moon: false, cloudColor: c('#ff9a7a'), cloudCover: 0.45, streetLights: 0.8,
+    litFraction: 0.18, stars: 0.35, moon: false, cloudColor: c('#ff9a7a'), cloudCover: 0.45, streetLights: 0.8,
   },
   dawn: {
     skyTop: c('#26407c'), skyBottom: c('#f6a6a0'), horizon: c('#ffd6a8'), key: c('#ffd0aa'), keyIntensity: 2,
