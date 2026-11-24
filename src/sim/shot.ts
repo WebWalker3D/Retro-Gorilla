@@ -32,7 +32,7 @@ export function facing(player: Player): 1 | -1 {
 /** Where the banana leaves the gorilla's raised hand. */
 export function launchPoint(w: World, player: Player): { x: number; y: number } {
   const g = w.gorillas[player];
-  return { x: g.x + facing(player) * 1.2, y: g.y + GORILLA_H * 0.95 };
+  return { x: g.x + facing(player) * 1.5, y: g.y + GORILLA_H * 0.95 };
 }
 
 export function launchVector(shot: Shot): { vx: number; vy: number } {

@@ -31,8 +31,8 @@ export const MAX_SHOT_TIME = 20;
 export const MAX_STEP = 0.45;
 export const OUT_MARGIN = 20;
 
-export const GORILLA_HALF_W = 1.4;
-export const GORILLA_H = 3.6;
+export const GORILLA_HALF_W = 1.8;
+export const GORILLA_H = 4.7;
 
 export interface WeaponSpec {
   name: string;
