@@ -26,7 +26,7 @@ import { newAiMemory, type AiMemory } from '../sim/ai';
 import { WEAPON_ORDER } from '../sim/constants';
 import { applyShot, canUse, newMatch, startRound, type MatchConfig, type MatchState } from '../sim/match';
 import { previewPath, simulateShot } from '../sim/shot';
-import type { Player, Shot } from '../sim/types';
+import type { Player, Shot, ShotResult } from '../sim/types';
 import { dragToAim } from '../ui/aimMath';
 import { UI, type AimState, type SetupResult } from '../ui/ui';
 
@@ -193,6 +193,7 @@ export class App {
       this.ui.showFlightHint(!attract);
       this.ui.setTurn(null);
       await this.stage.playShot(shot, r);
+      this.sfx.stopWhistle(); // a banana that leaves the map never explodes
       this.inFlight = false;
       this.stage.fastForward = false;
       this.ui.showFlightHint(false);
@@ -200,6 +201,7 @@ export class App {
       const o = applyShot(m, shot, r);
       if (!canUse(m, p, this.aim[p].weapon)) this.aim[p].weapon = 'banana';
       if (o.kind === 'continue') {
+        this.maybeTaunt(r, (1 - p) as Player);
         this.stage.setWind(m.world.wind);
         this.ui.setWind(m.world.wind, m.round);
         this.sfx.setAmbience(m.cond.weather, m.world.wind);
@@ -222,7 +224,10 @@ export class App {
         this.ui.showHud(false);
         this.ui.showResults(
           m,
-          () => this.runMatch({ ...cfg, seed: (Math.random() * 1e9) | 0 }, false),
+          () => {
+            this.ui.clearPanels();
+            void this.runMatch({ ...cfg, seed: (Math.random() * 1e9) | 0 }, false);
+          },
           () => this.goTitle(),
         );
         return;
@@ -233,6 +238,14 @@ export class App {
       this.ui.setWind(m.world.wind, m.round);
       this.sfx.setAmbience(m.cond.weather, m.world.wind);
     }
+  }
+
+  /** The target jeers at a throw that missed it by a mile. */
+  private maybeTaunt(r: ShotResult, target: Player): void {
+    const g = r.world.gorillas[target];
+    let nearest = Infinity;
+    for (const e of r.events) if (e.type === 'explode') nearest = Math.min(nearest, Math.hypot(e.x - g.x, e.y - g.y));
+    if (nearest > 14 && Math.random() < 0.6) this.stage.gorillas[target].play('taunt');
   }
 
   private humanTurn(m: MatchState, p: Player): Promise<Shot> {
