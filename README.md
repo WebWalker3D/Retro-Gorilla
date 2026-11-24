@@ -2,7 +2,13 @@
 
 A 3D homage to the classic QBasic banana-throwing gorilla duel. Two gorillas stand on a city skyline and take turns lobbing explosive bananas at each other. You set the angle and power and allow for the wind. The buildings get blown apart as you go, and a hit is a knockout.
 
-**Status:** playable; see the roadmap below.
+**Play it:** https://webwalker3d.github.io/Retro-Gorilla/
+
+![Title screen over a night skyline](media/title.webp)
+
+| Aiming at dusk | Knockout replay | Victory |
+|---|---|---|
+| ![Aiming with the arc preview](media/aim.webp) | ![Slow-motion knockout](media/knockout.webp) | ![Chest-beat close-up](media/victory.webp) |
 
 ## Features
 
@@ -49,10 +55,15 @@ The game is a static site: serve `dist/` from any web server.
 With the dev server running, these drive the real game in Chromium on your GPU:
 
 ```bash
-node scripts/flow.mjs http://localhost:5173/ shots   # title → setup → match → drag-aim → throw
-node scripts/ko.mjs   http://localhost:5173/ shots   # plays a full match with perfect throws
-node scripts/shot.mjs http://localhost:5173/ shots/title.png
+node scripts/regress.mjs http://localhost:5173/          # app-level regression checks (exit code 1 on failure)
+node scripts/flow.mjs    http://localhost:5173/ shots    # title → setup → match → drag-aim → throw
+node scripts/ko.mjs      http://localhost:5173/ shots    # plays a full match with perfect throws
+node scripts/weapons.mjs http://localhost:5173/ shots    # fires each special weapon
+node scripts/perf.mjs    http://localhost:5173/          # frame cost per preset + hitch count
+node scripts/media.mjs   http://localhost:5173/ media    # README screenshots
 ```
+
+Measured on an AMD Radeon (Barcelo) laptop iGPU at 1920×1080: Low, Medium and High hold a locked 60 fps with no frames over 25 ms; uncapped, High renders at 78–110 fps in about 50 draw calls.
 
 ## Tech
 
