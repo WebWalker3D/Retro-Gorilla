@@ -33,7 +33,7 @@ export class AimViz {
   private t = 0;
 
   constructor() {
-    this.dots = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.2, 1), this.mat, MAX_DOTS);
+    this.dots = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.42, 1), this.mat, MAX_DOTS);
     this.dots.frustumCulled = false;
     this.dots.count = 0;
     const arrowMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });

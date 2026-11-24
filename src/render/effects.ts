@@ -241,6 +241,11 @@ export class Effects {
     this.group.add(this.add.points, this.smoke.points, this.chunkMesh, this.light, starMesh);
   }
 
+  /** Quality changes scale how many particles each effect spawns (pool sizes stay). */
+  setScale(s: number): void {
+    this.scale = s;
+  }
+
   setViewport(h: number, fov: number): void {
     this.add.setViewportHeight(h, fov);
     this.smoke.setViewportHeight(h, fov);

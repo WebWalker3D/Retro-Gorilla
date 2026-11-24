@@ -16,44 +16,27 @@
  * The Initial Developer of the Original Code is Blaine Bouvier. All portions of the
  * code written by Blaine Bouvier are Copyright (c) 2026. All Rights Reserved.
  */
-import { Engine } from './render/engine';
-import { Stage } from './render/stage';
-import { applyShot, newMatch, startRound, type TimeOfDay, type Weather } from './sim/match';
-import { chooseShot, newAiMemory } from './sim/ai';
-import { Rng } from './sim/rng';
-import { simulateShot } from './sim/shot';
-import type { Player, Shot, WeaponId } from './sim/types';
+import '@fontsource/bungee/400.css';
+import '@fontsource/bungee-inline/400.css';
+import '@fontsource/barlow-semi-condensed/400.css';
+import '@fontsource/barlow-semi-condensed/500.css';
+import '@fontsource/barlow-semi-condensed/600.css';
+import '@fontsource/barlow-semi-condensed/700.css';
+import './ui/style.css';
+import { App } from './app/app';
 
-const q = new URLSearchParams(location.search);
-const engine = new Engine(document.getElementById('view') as HTMLCanvasElement, (q.get('q') as 'high') ?? 'high');
-const stage = new Stage(engine);
-const m = newMatch({ names: ['P1', 'P2'], cpu: [false, false], skill: [2, 2], target: 3, gravity: 9.8, seed: Number(q.get('seed') ?? 5) });
-if (q.get('tod')) m.cond.timeOfDay = q.get('tod') as TimeOfDay;
-if (q.get('wx')) m.cond.weather = q.get('wx') as Weather;
-stage.loadRound(m);
-engine.onFrame((dt, t) => stage.update(dt, t));
-engine.start();
+const app = new App(document.getElementById('view') as HTMLCanvasElement, document.getElementById('ui') as HTMLElement);
+app.start();
+
+// hooks for the Playwright visual/perf scripts in scripts/
 let frames = 0;
-engine.onFrame(() => {
-  if (++frames === 30) (window as any).__ready = true;
+app.engine.onFrame(() => {
+  if (++frames === 30) (window as unknown as { __ready: boolean }).__ready = true;
 });
-(window as any).__info = () => engine.info();
-(window as any).__game = {
-  fire(angle: number, velocity: number, weapon: WeaponId = 'banana') {
-    const shot: Shot = { player: m.turn, angle, velocity, weapon };
-    const r = simulateShot(m.world, shot);
-    stage.playShot(shot, r).then(() => {
-      const o = applyShot(m, shot, r);
-      (window as any).__last = o;
-      if (o.kind !== 'continue') startRound(m), stage.loadRound(m);
-    });
-    return r.ko;
-  },
-  best(p: Player = m.turn) {
-    return chooseShot(m, p, new Rng(1), newAiMemory(), { noise: 0 });
-  },
-  aim(angle: number, power: number) {
-    stage.setAiming(m.turn, angle, power, null);
-  },
-  m,
-};
+Object.assign(window, { __app: app, __info: () => app.engine.info() });
+if (import.meta.env.DEV) {
+  // dev-only: let scripts compute a perfect throw for the current player
+  void Promise.all([import('./sim/ai'), import('./sim/rng')]).then(([ai, rng]) =>
+    Object.assign(window, { __best: () => ai.chooseShot(app.match!, app.match!.turn, new rng.Rng(1), ai.newAiMemory(), { noise: 0 }) }),
+  );
+}

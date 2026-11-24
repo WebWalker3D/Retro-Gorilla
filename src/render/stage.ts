@@ -188,7 +188,7 @@ export class Stage {
     this.engine.scene.environmentIntensity = m.cond.timeOfDay === 'night' ? 0.5 : 0.9;
     let top = 0;
     for (const b of w.city.buildings) top = Math.max(top, b.height);
-    this.cam.setOverviewBox(wx(0) - 3, wx(w.city.w) + 3, -2, Math.max(top + 16, w.sun.y + w.sun.r + 3));
+    this.cam.setOverviewBox(wx(0) - 3, wx(w.city.w) + 3, -2, Math.max(top + 16, w.sun.y + w.sun.r + 10));
     this.cam.overview();
     this.cam.snap();
   }
