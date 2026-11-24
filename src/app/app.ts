@@ -25,9 +25,10 @@ import { loadSettings, saveSettings, type Settings } from '../settings';
 import { newAiMemory, type AiMemory } from '../sim/ai';
 import { WEAPON_ORDER } from '../sim/constants';
 import { applyShot, canUse, newMatch, startRound, type MatchConfig, type MatchState } from '../sim/match';
-import { previewPath, simulateShot } from '../sim/shot';
+import { launchPoint, previewPath, simulateShot } from '../sim/shot';
 import type { Player, Shot, ShotResult } from '../sim/types';
 import { dragToAim } from '../ui/aimMath';
+import { AimOverlay } from '../ui/aimOverlay';
 import { UI, type AimState, type SetupResult } from '../ui/ui';
 
 interface Timer {
@@ -65,12 +66,20 @@ export class App {
   private timers: Timer[] = [];
   private audioOn = false;
   private screen: 'title' | 'setup' | 'settings' | 'match' | 'results' = 'title';
+  private overlay: AimOverlay;
+  private cpuAiming: Player | null = null;
+  private previewSim: Float32Array | null = null;
+  private lastThrow: [{ xy: number[]; label: string } | null, { xy: number[]; label: string } | null] = [null, null];
+  private pointer = { x: 0, y: 0 };
+  private scr = { x: 0, y: 0 };
+  private scr2 = { x: 0, y: 0 };
 
   constructor(canvas: HTMLCanvasElement, uiRoot: HTMLElement) {
     this.settings = loadSettings();
     this.engine = new Engine(canvas, this.settings.preset ?? 'high');
     this.stage = new Stage(this.engine);
     this.ui = new UI(uiRoot);
+    this.overlay = new AimOverlay(uiRoot);
     this.ui.click = () => this.sfx.click();
     this.ui.onAimEdit = (a) => this.editAim(a);
     this.ui.onThrow = () => this.throwNow();
@@ -172,6 +181,7 @@ export class App {
     const m = newMatch(cfg);
     this.match = m;
     this.memory = [newAiMemory(), newAiMemory()];
+    this.lastThrow = [null, null];
     this.aim = [
       { angle: 45, velocity: 60, weapon: 'banana' },
       { angle: 45, velocity: 60, weapon: 'banana' },
@@ -195,6 +205,7 @@ export class App {
       const shot = cfg.cpu[p] ? await this.cpuTurn(m, p, token) : await this.humanTurn(m, p);
       if (!shot || !live()) return;
       const r = simulateShot(m.world, shot);
+      if (!cfg.cpu[p]) this.recordThrow(shot, r);
       this.inFlight = true;
       this.ui.showFlightHint(!attract);
       this.ui.setTurn(null);
@@ -240,6 +251,7 @@ export class App {
       }
       startRound(m);
       this.memory = [newAiMemory(), newAiMemory()];
+      this.lastThrow = [null, null];
       this.stage.loadRound(m);
       this.ui.setWind(m.world.wind, m.round);
       this.sfx.setAmbience(m.cond.weather, m.world.wind);
@@ -276,14 +288,16 @@ export class App {
     const from = { ...this.aim[p] };
     const to = res.shot;
     this.aim[p].weapon = to.weapon;
+    this.cpuAiming = p;
     await this.tween(0.85, (k) => {
       const e = ease(k);
       this.aim[p].angle = from.angle + (to.angle - from.angle) * e;
       this.aim[p].velocity = from.velocity + (to.velocity - from.velocity) * e;
       if (show) this.ui.setAim(this.aim[p], m.ammo[p]);
-      this.stage.setAiming(p, this.aim[p].angle, Math.min(1, this.aim[p].velocity / 120), null);
+      this.stage.setAiming(p, this.aim[p].angle, Math.min(1, this.aim[p].velocity / 120));
     });
     await this.sleep(0.25);
+    this.cpuAiming = null;
     if (token !== this.token) return null;
     this.aim[p].angle = to.angle;
     this.aim[p].velocity = to.velocity;
@@ -299,8 +313,68 @@ export class App {
     const a = this.aim[p];
     this.ui.setAim(a, m.ammo[p]);
     const frac = PREVIEW[this.settings.aimPreview];
-    const preview = frac > 0 ? previewPath(m.world, { player: p, ...a }, frac) : null;
-    this.stage.setAiming(p, a.angle, Math.min(1, a.velocity / 120), preview);
+    this.previewSim = frac > 0 ? previewPath(m.world, { player: p, ...a }, frac) : null;
+    this.stage.setAiming(p, a.angle, Math.min(1, a.velocity / 120));
+  }
+
+  /** Keeps a decimated copy of a human's throw so their next turn can show where it went. */
+  private recordThrow(shot: Shot, r: ShotResult): void {
+    const lead = r.paths.find((x) => x.id === 0);
+    if (!lead) return;
+    const xy: number[] = [];
+    const add = (a: Float32Array) => {
+      for (let i = 0; i < a.length - 2; i += 6) xy.push(a[i], a[i + 1]);
+      xy.push(a[a.length - 2], a[a.length - 1]);
+    };
+    add(lead.xy);
+    const split = r.events.find((e) => e.type === 'split');
+    if (split && split.type === 'split') {
+      const mid = r.paths.find((x) => x.id === split.children[1]);
+      if (mid) add(mid.xy);
+    }
+    this.lastThrow[shot.player] = { xy, label: `last: ${Math.round(shot.angle)}°, speed ${Math.round(shot.velocity)}` };
+  }
+
+  /** Screen-space aim guide for whoever is aiming (human or CPU). */
+  private drawAimGuide(): void {
+    const m = this.match;
+    const p = this.aiming ?? this.cpuAiming;
+    if (!m || p === null || this.attract || this.paused) {
+      this.overlay.hide();
+      return;
+    }
+    const a = this.aim[p];
+    const lp = launchPoint(m.world, p);
+    const f = p === 0 ? 1 : -1;
+    const rad = (a.angle * Math.PI) / 180;
+    const hand = this.stage.toScreen(lp.x, lp.y, this.scr);
+    const tip = this.stage.toScreen(lp.x + Math.cos(rad) * f * 6, lp.y + Math.sin(rad) * 6, this.scr2);
+    const dx = tip.x - hand.x;
+    const dy = tip.y - hand.y;
+    const dl = Math.hypot(dx, dy) || 1;
+    const human = this.aiming !== null;
+    const project = (src: ArrayLike<number>, step: number) => {
+      const out: number[] = [];
+      for (let i = 0; i < src.length; i += step * 2) {
+        this.stage.toScreen(src[i], src[i + 1], this.scr2);
+        out.push(this.scr2.x, this.scr2.y);
+      }
+      return out;
+    };
+    const ghost = human ? this.lastThrow[p] : null;
+    const d = this.drag;
+    this.overlay.show({
+      hand: { x: hand.x, y: hand.y },
+      dir: { x: dx / dl, y: dy / dl },
+      power01: Math.min(1, a.velocity / 120),
+      angle: a.angle,
+      velocity: a.velocity,
+      color: p === 0 ? '#c9d4ff' : '#ffc39e',
+      preview: human && this.previewSim ? project(this.previewSim, 2) : null,
+      ghost: ghost ? project(ghost.xy, 1) : null,
+      ghostLabel: ghost?.label ?? '',
+      drag: d && d.moved ? { x0: d.x, y0: d.y, x1: this.pointer.x, y1: this.pointer.y } : null,
+    });
   }
 
   private editAim(patch: Partial<AimState>): void {
@@ -371,6 +445,7 @@ export class App {
       }
     }
     this.stage.update(d, t);
+    this.drawAimGuide();
     if (this.inFlight && !this.attract && this.stage.projectiles.leadActive) {
       const v = this.stage.projectiles.leadVel.length();
       this.sfx.whistle(Math.min(1, this.stage.projectiles.lead.y / 80), Math.min(1, v / 90));
@@ -409,6 +484,8 @@ export class App {
       this.drag = { x: e.clientX, y: e.clientY, moved: false };
     });
     canvas.addEventListener('pointermove', (e) => {
+      this.pointer.x = e.clientX;
+      this.pointer.y = e.clientY;
       const d = this.drag;
       const p = this.aiming;
       if (!d || p === null) return;

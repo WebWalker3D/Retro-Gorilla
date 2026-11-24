@@ -35,6 +35,20 @@ await page.mouse.move(640, 360);
 await page.mouse.down();
 await page.mouse.move(560, 420, { steps: 6 });
 check('drag aims after starting mid-attract-flight', await page.evaluate(() => window.__app.aim[0].angle !== 45));
+await page.waitForTimeout(100);
+const guide = await page.evaluate(() => {
+  const svg = document.getElementById('aimfx');
+  const a = window.__app.aim[0];
+  return {
+    visible: !!svg && getComputedStyle(svg).display !== 'none',
+    arrows: svg ? svg.querySelectorAll('.arrow:not(.off)').length : 0,
+    band: !!svg && !svg.querySelector('.band')?.classList.contains('off'),
+    label: svg?.querySelector('.hand-label')?.textContent ?? '',
+    want: `${Math.round(a.angle)}°`,
+  };
+});
+check('aim guide shows arrows at the hand and the pointer while dragging', guide.visible && guide.arrows >= 2 && guide.band);
+check('aim guide labels the current angle', guide.label.includes(guide.want));
 await page.mouse.move(640, 360, { steps: 6 }); // back to the start: no throw
 await page.mouse.up();
 await page.keyboard.press('Escape');
@@ -49,6 +63,13 @@ await page.evaluate(() => window.__app.editAim({ angle: 100, velocity: 200, weap
 await page.keyboard.press('Enter');
 await page.waitForFunction(() => window.__app.aiming === 1, null, { timeout: 30000 });
 check('whistle stops after a banana leaves the map', await page.evaluate(() => window.__app.sfx.whistleOsc === null));
+
+// 1b. after a throw, that player's next turn shows a trace of the last throw
+await page.evaluate(() => window.__app.editAim({ angle: 100, velocity: 200, weapon: 'banana' }));
+await page.keyboard.press('Enter');
+await page.waitForFunction(() => window.__app.aiming === 0, null, { timeout: 30000 });
+await page.waitForTimeout(200);
+check('last-throw trace is shown on the next turn', await page.evaluate(() => !document.querySelector('#aimfx .ghost')?.classList.contains('off') && document.querySelector('#aimfx .ghost')?.getAttribute('points')?.length > 10));
 
 // 2. rematch clears the results panel
 await page.evaluate(() => (window.__app.match.cfg.target = 1));

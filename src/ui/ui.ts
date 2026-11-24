@@ -103,9 +103,9 @@ export class UI {
     this.consoleEl = el(`<div id="console" class="live hidden">
       <div class="weapons" role="group" aria-label="Weapon"></div>
       <div class="num"><label for="aim-angle">Angle</label><input id="aim-angle" type="number" min="0" max="180" step="1"></div>
-      <div class="num"><label for="aim-vel">Velocity</label><input id="aim-vel" type="number" min="1" max="200" step="1"></div>
+      <div class="num"><label for="aim-vel">Speed</label><input id="aim-vel" type="number" min="1" max="200" step="1"></div>
       <button class="btn primary throw" type="button">Throw</button>
-      <p class="hint">Drag anywhere to aim, release to throw. Arrow keys fine-tune, Enter throws.</p>
+      <p class="hint">Drag anywhere to aim: pull back like a slingshot and let go to throw. Arrow keys fine-tune, Enter throws.</p>
     </div>`);
     this.flight = el(`<div id="flight" class="hidden">Hold Space or the mouse button to fast-forward. Press S to skip.</div>`);
     this.banner = el(`<div id="banner" class="hidden"></div>`);

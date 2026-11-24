@@ -81,7 +81,7 @@ button { cursor: pointer; }
 
 /* ——— HUD ——— */
 #hud { position: absolute; inset: 0; }
-.player { position: absolute; top: 14px; display: flex; align-items: baseline; gap: 14px; text-shadow: 0 2px 10px #000; }
+.player { position: absolute; top: 14px; display: flex; align-items: baseline; gap: 14px; text-shadow: 0 1px 2px #000, 0 2px 10px #000; }
 .player.p1 { left: 22px; }
 .player.p2 { right: 22px; flex-direction: row-reverse; }
 .player .score { font-family: var(--sign); font-size: 3rem; line-height: 1; }
@@ -92,12 +92,12 @@ button { cursor: pointer; }
 .player .tag { min-height: 1.1em; }
 .player.turn .tag { color: var(--banana); font-weight: 700; }
 .player.p2 .name { text-align: right; }
-#wind { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 10px #000; }
+#wind { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); text-align: center; text-shadow: 0 1px 2px #000, 0 2px 10px #000; }
 #wind .gauge { width: 240px; height: 26px; position: relative; }
 #wind .gauge::before { content: ''; position: absolute; left: 50%; top: 2px; bottom: 2px; width: 2px; background: rgba(243, 238, 223, 0.35); }
 #wind .bar { position: absolute; top: 9px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--amber), var(--banana)); transition: left 0.4s, width 0.4s; }
 #wind .val { font-weight: 600; color: var(--paper); }
-#wind .round { color: var(--muted); font-size: 0.85rem; }
+#wind .round { color: var(--paper); opacity: 0.8; font-size: 0.85rem; }
 
 /* ——— aim console ——— */
 #console {
@@ -144,4 +144,32 @@ button { cursor: pointer; }
   #wind .gauge { width: 150px; }
   .weapon { width: 46px; height: 46px; }
   .row { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* ——— on-screen aim guide ——— */
+#aimfx { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#aimfx .off { display: none; }
+#aimfx .arrow { stroke: rgba(8, 8, 24, 0.85); stroke-width: 2.5; stroke-linejoin: round; }
+#aimfx .drag-arrow { opacity: 0.92; }
+#aimfx text { font-family: var(--road); font-weight: 700; font-size: 20px; fill: #fff; paint-order: stroke; stroke: rgba(8, 8, 24, 0.9); stroke-width: 5px; stroke-linejoin: round; }
+#aimfx .dot { stroke: rgba(8, 8, 24, 0.85); stroke-width: 2; }
+#aimfx .band { stroke: rgba(243, 238, 223, 0.85); stroke-width: 3; stroke-dasharray: 6 6; }
+#aimfx .anchor { fill: rgba(243, 238, 223, 0.9); stroke: rgba(8, 8, 24, 0.85); stroke-width: 2; }
+#aimfx .knob { fill: rgba(14, 16, 48, 0.55); stroke-width: 4; }
+#aimfx .ghost { fill: none; stroke: rgba(243, 238, 223, 0.55); stroke-width: 2.5; stroke-dasharray: 2 7; stroke-linecap: round; }
+#aimfx .ghost-end path { stroke: rgba(243, 238, 223, 0.85); stroke-width: 3; stroke-linecap: round; }
+#aimfx .ghost-end text { font-size: 15px; font-weight: 600; text-anchor: middle; fill: rgba(243, 238, 223, 0.9); }
+
+/* ——— compact controls on small screens ——— */
+@media (max-height: 560px), (max-width: 760px) {
+  #console { gap: 8px; padding: 6px 10px; bottom: 6px; flex-wrap: nowrap; }
+  #console .hint { display: none; }
+  .weapon { width: 40px; height: 40px; }
+  .weapon svg { width: 26px; height: 26px; }
+  .num label { font-size: 0.72rem; }
+  .num input { width: 3.8rem; font-size: 1.1rem; }
+  #console .throw { padding: 8px 14px; font-size: 1rem; }
+  .player .score { font-size: 1.8rem; }
+  .player .name { font-size: 1rem; }
+  #flight { display: none; }
 }

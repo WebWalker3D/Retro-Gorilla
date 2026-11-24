@@ -20,7 +20,6 @@ import * as THREE from 'three';
 import { GORILLA_H } from '../sim/constants';
 import type { MatchState } from '../sim/match';
 import type { Player, Shot, ShotResult, SimEvent } from '../sim/types';
-import { AimViz } from './aimViz';
 import { Backdrop } from './backdrop';
 import { CameraDirector } from './camera';
 import { CityMesh } from './cityMesh';
@@ -68,7 +67,6 @@ interface Playback {
 }
 
 const tmpV = new THREE.Vector3();
-const tmpC = new THREE.Color();
 const SLOWMO = 0.2;
 
 /** The 3D world for one match: builds each round, replays shots, directs the camera. */
@@ -80,7 +78,6 @@ export class Stage {
   readonly weather: Weather;
   readonly effects: Effects;
   readonly projectiles = new Projectiles();
-  readonly aim = new AimViz();
   readonly cam: CameraDirector;
   readonly gorillas: [GorillaModel, GorillaModel];
   killcam = true;
@@ -121,7 +118,7 @@ export class Stage {
     );
     this.marker.visible = false;
     const s = engine.scene;
-    s.add(this.sky.group, this.city.mesh, this.props.group, this.backdrop.group, this.weather.group, this.effects.group, this.projectiles.group, this.aim.group);
+    s.add(this.sky.group, this.city.mesh, this.props.group, this.backdrop.group, this.weather.group, this.effects.group, this.projectiles.group);
     s.add(this.hemi, this.key, this.key.target, this.marker, this.gorillas[0].group, this.gorillas[1].group);
     this.weather.onLightning = (a) => {
       this.sky.flash(a * 0.7);
@@ -157,7 +154,6 @@ export class Stage {
     this.falls = [];
     this.effects.clear();
     this.projectiles.clear();
-    this.aim.hide();
     this.city.build(w.city);
     this.props.build(w.city, m.cond.seed, w.gorillas);
     w.gorillas.forEach((g, i) => {
@@ -199,23 +195,24 @@ export class Stage {
     this.effects.setWind(w);
   }
 
-  /** Live aim feedback for the active player. `preview` = sim-space dotted arc or null. */
-  setAiming(p: Player, angle: number, power01: number, preview: Float32Array | null): void {
+  /** Aiming pose + marker for the active player (the on-screen guide is drawn by the UI). */
+  setAiming(p: Player, angle: number, power01: number): void {
     const g = this.gorillas[p];
     g.setAim(angle, power01);
     if (g.current !== 'aim') g.play('aim');
-    const f = p === 0 ? 1 : -1;
-    const a = (angle * Math.PI) / 180;
-    const worldAngle = f > 0 ? a : Math.PI - a;
-    tmpV.set(this.gorillaX[p] + f * 1.5, this.gorillaY[p] + GORILLA_H * 0.95, 0.6);
-    this.aim.setColor(tmpC.copy(GORILLA_TINTS[p]).lerp(new THREE.Color('#ffffff'), 0.55));
-    this.aim.set(tmpV, worldAngle, power01, preview);
     this.showMarker(p);
   }
 
   stopAiming(p?: Player): void {
-    this.aim.hide();
     if (p !== undefined && this.gorillas[p].current === 'aim') this.gorillas[p].play('idle');
+  }
+
+  /** Projects a sim-plane point to CSS pixels. */
+  toScreen(simX: number, simY: number, out: { x: number; y: number }): { x: number; y: number } {
+    tmpV.set(wx(simX), simY, 0).project(this.engine.camera);
+    out.x = ((tmpV.x + 1) / 2) * innerWidth;
+    out.y = ((1 - tmpV.y) / 2) * innerHeight;
+    return out;
   }
 
   showMarker(p: Player | null): void {
@@ -226,7 +223,6 @@ export class Stage {
   }
 
   playShot(shot: Shot, r: ShotResult): Promise<void> {
-    this.aim.hide();
     this.showMarker(null);
     this.gorillas[shot.player].play('throw');
     this.projectiles.show(r.paths);
@@ -419,7 +415,6 @@ export class Stage {
     this.weather.update(dt, t);
     this.effects.setViewport(this.engine.renderer.domElement.height, camera.fov);
     this.effects.update(simDt, t, camera);
-    this.aim.update(dt);
     for (const g of this.gorillas) g.update(simDt);
   }
 }
