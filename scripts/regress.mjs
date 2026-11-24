@@ -26,6 +26,21 @@ const check = (name, ok) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if
 await page.goto(url);
 await page.waitForFunction(() => window.__ready === true && window.__best, null, { timeout: 60000 });
 
+// 0. starting a match while the title-screen banana is mid-flight must still allow aiming
+await page.waitForFunction(() => window.__app.inFlight === true, null, { timeout: 60000 });
+await page.getByRole('button', { name: 'Play against the CPU' }).click();
+await page.getByRole('button', { name: 'Start match' }).click();
+await page.waitForFunction(() => window.__app.aiming === 0, null, { timeout: 30000 });
+await page.mouse.move(640, 360);
+await page.mouse.down();
+await page.mouse.move(560, 420, { steps: 6 });
+check('drag aims after starting mid-attract-flight', await page.evaluate(() => window.__app.aim[0].angle !== 45));
+await page.mouse.move(640, 360, { steps: 6 }); // back to the start: no throw
+await page.mouse.up();
+await page.keyboard.press('Escape');
+await page.getByRole('button', { name: 'Quit to title' }).click();
+await page.waitForTimeout(300);
+
 // 1. a banana that leaves the map must stop the flight whistle
 await page.getByRole('button', { name: 'Two players, one keyboard' }).click();
 await page.getByRole('button', { name: 'Start match' }).click();

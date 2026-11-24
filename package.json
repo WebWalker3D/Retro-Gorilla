@@ -1,6 +1,6 @@
 {
   "name": "retro-gorilla",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A 3D homage to the classic banana-throwing gorilla duel.",
   "scripts": {
     "dev": "vite",

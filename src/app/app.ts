@@ -86,10 +86,11 @@ export class App {
     this.goTitle();
     if (this.settings.preset === null) {
       // auto-detect: sample the attract mode at High, then settle on a preset
-      void this.sleep(4).then(() => {
+      // (a plain timeout: match timers are reset when a match starts)
+      window.setTimeout(() => {
         this.detected = presetForFrameTime(this.engine.frameMs);
         if (this.settings.preset === null) this.applyPreset(this.detected);
-      });
+      }, 4000);
     }
   }
 
@@ -161,6 +162,11 @@ export class App {
     this.ai.cancelAll();
     this.timers = [];
     this.endAiming();
+    // the previous match may have been mid-flight (e.g. the title-screen attract match)
+    this.inFlight = false;
+    this.stage.fastForward = false;
+    this.ui.showFlightHint(false);
+    this.sfx.stopWhistle();
     this.attract = attract;
     this.screen = attract ? this.screen : 'match';
     const m = newMatch(cfg);
@@ -415,11 +421,12 @@ export class App {
       this.aim[p].velocity = a.velocity;
       this.refreshAim();
     });
-    const up = () => {
+    const up = (e: PointerEvent) => {
       this.stage.fastForward = false;
       const d = this.drag;
       this.drag = null;
-      if (d?.moved) this.throwNow();
+      // releasing back where the drag started cancels the throw
+      if (d?.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) >= 10) this.throwNow();
     };
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', () => {
