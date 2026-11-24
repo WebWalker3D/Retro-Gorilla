@@ -1,0 +1,34 @@
+{
+  "name": "retro-gorilla",
+  "version": "0.1.0",
+  "description": "A 3D homage to the classic banana-throwing gorilla duel.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WebWalker3D/Retro-Gorilla.git"
+  },
+  "license": "CPAL-1.0",
+  "bugs": {
+    "url": "https://github.com/WebWalker3D/Retro-Gorilla/issues"
+  },
+  "homepage": "https://github.com/WebWalker3D/Retro-Gorilla#readme",
+  "dependencies": {
+    "n8ao": "^2.1.0",
+    "postprocessing": "^6.39.6",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.187.0",
+    "playwright": "^1.65.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  },
+  "private": true,
+  "type": "module"
+}

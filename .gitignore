@@ -1,0 +1,8 @@
+node_modules
+dist
+docs/superpowers
+.superpowers
+CLAUDE.md
+test-results
+shots
+*.log

@@ -1,0 +1,8 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  // Relative asset paths, so the build runs from a subfolder (GitHub Pages) or any static server.
+  base: './',
+  build: { target: 'es2022', chunkSizeWarningLimit: 4000 },
+  test: { environment: 'node', include: ['tests/**/*.test.ts'] },
+});
